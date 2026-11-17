@@ -7,7 +7,7 @@ id INTEGER PRIMARY KEY AUTOINCREMENT,
 user INTEGER,
 amount REAL,
 category TEXT,
-date TEXT,
+date DATE,
 comment TEXT
 )
 ''')
@@ -28,14 +28,36 @@ def check_index(b, user):
             return int(b)
     return False
 def check_date(d):
+    d=d.strip()
+    d=d.replace('-', '.').replace('/', '.')
     parts=d.split('.')
     if len(parts)==3:
         day, month, year=parts
         if len(day)==2 and len(month)==2 and len(year)==4:
             if day.isdigit() and month.isdigit() and year.isdigit():
-                if 1<=int(day)<=31 and 1<=int(month)<=12 and int(year)>0:
-                    return d
+                day_i=int(day)
+                month_i=int(month)
+                year_i=int(year)
+                if 1000<=year_i<=9999 and 1<=month_i<=12:
+                    if month_i==2:
+                        if(year_i%4==0 and year_i%100!=0) or (year_i%400==0):
+                            max_days=29
+                        else:
+                            max_days=28
+                    elif month_i in (4, 6, 9, 11):
+                        max_days=30
+                    else:
+                        max_days=31
+                    if 1<=day_i<=max_days:
+                        return f'{day}.{month}.{year}'
     return False
+def get_sum(user):
+    conn=sqlite3.connect('expenses.db')
+    c=conn.cursor()
+    c.execute('SELECT SUM(amount) FROM expenses WHERE user=?', (user,))
+    (total,)=c.fetchone()
+    conn.close()
+    return total
 def add_expense(user, value, category, date_str, text_comment):
     if category=='':
         category='No category'
@@ -63,13 +85,20 @@ def get_count(user):
     return len(row)
 def start(user):
     while True:
+        print('1 - show the amount of expenses')
         print('5 - add new expenses')
         print('7 - show all expenses')
         print('12 - count expenses')
         print('0 - exit')
         print()
         choise=input('Select an option: ')
-        if choise=='5':
+        if choise=='1':
+            total=get_sum(user)
+            if total is None:
+                print('List is empty')
+            else:
+                print('Amount of expenses:', total)
+        elif choise=='5':
             while True:
                 value_raw=input('Enter new expense: ')
                 value=check_input(value_raw)
@@ -80,7 +109,7 @@ def start(user):
                         date_str=check_date(date_raw)
                         if date_str is not False:
                             break
-                        print('Input error, enter in this form: dd.mm.yyyy')
+                        print('Input error, enter valid date (dd.mm.yyyy)')
                     text_comment=input('Enter comment: ')
                     add_expense(user, value, category, date_str, text_comment)
                     break
