@@ -58,6 +58,20 @@ def get_sum(user):
     (total,)=c.fetchone()
     conn.close()
     return total
+def get_max(user):
+    conn=sqlite3.connect('expenses.db')
+    c=conn.cursor()
+    c.execute('SELECT MAX(amount) FROM expenses WHERE user=?', (user,))
+    (max_val,)=c.fetchone()
+    conn.close()
+    return max_val
+def get_min(user):
+    conn=sqlite3.connect('expenses.db')
+    c=conn.cursor()
+    c.execute('SELECT MIN(amount) FROM expenses WHERE user=?', (user,))
+    (max_min,)=c.fetchone()
+    conn.close()
+    return max_min
 def add_expense(user, value, category, date_str, text_comment):
     if category=='':
         category='No category'
@@ -76,6 +90,13 @@ def show_expenses(user):
     row=c.fetchall()
     conn.close()
     return row
+def delete_expense(exp_id, user):
+    conn=sqlite3.connect('expenses.db')
+    c=conn.cursor()
+    c.execute('DELETE FROM expenses WHERE id=? AND user=?', (exp_id, user))
+    conn.commit()
+    conn.close()
+    print('Expense deleted')
 def get_count(user):
     conn=sqlite3.connect('expenses.db')
     c=conn.cursor()
@@ -86,8 +107,11 @@ def get_count(user):
 def start(user):
     while True:
         print('1 - show the amount of expenses')
+        print('2 - show maximum expense')
+        print('3 - show minimum expense')
         print('5 - add new expenses')
         print('7 - show all expenses')
+        print('8 - delete expense')
         print('12 - count expenses')
         print('0 - exit')
         print()
@@ -98,6 +122,18 @@ def start(user):
                 print('List is empty')
             else:
                 print('Amount of expenses:', total)
+        elif choise=='2':
+            max_val=get_max(user)
+            if max_val is None:
+                print('List is empty')
+            else:
+                print('Max expense:', max_val)
+        elif choise=='3':
+                    min_val=get_min(user)
+                    if min_val is None:
+                        print('List is empty')
+                    else:
+                        print('Min expense:', max_val)        
         elif choise=='5':
             while True:
                 value_raw=input('Enter new expense: ')
@@ -121,6 +157,17 @@ def start(user):
             else:
                 for exp_id, amount, category, comment, date in row:
                     print(f'ID: {exp_id} / Amount: {amount} / Category: {category} / Comment: {comment} / Date: {date}')
+        elif choise=='8':
+            if get_count==0:
+                print('List is empty')
+            else:
+                while True:
+                    id_raw=input('Enter ID to delete: ')
+                    exp_id=(check_index(id_raw, user))
+                    if exp_id is not False:
+                        delete_expense(exp_id, user)
+                        break
+                    print('Input error, enter existing ID')
         elif choise=='12':
             print('Count:', get_count(user))
         elif choise=='0':
